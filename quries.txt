@@ -1,0 +1,135 @@
+// For topics 
+1)Find all the topics and tasks which are thought in the month of October
+
+db.topics.aggregate([
+  {
+    $match: {
+      date: {
+        $gte: ISODate("2020-10-01T00:00:00Z"),
+        $lt: ISODate("2020-11-01T00:00:00Z")
+      }
+    }
+  }
+]);
+
+// For tasks
+db.tasks.aggregate([
+  {
+    $match: {
+      date: {
+        $gte: ISODate("2020-10-01T00:00:00Z"),
+        $lt: ISODate("2020-11-01T00:00:00Z")
+      }
+    }
+  }
+]);
+
+
+2)Find all the company drives which appeared between 15 oct-2020 and 31-oct-2020
+
+
+db.company_drives.find({
+    date: {
+      $gte: ISODate("2020-10-15T00:00:00Z"),
+      $lte: ISODate("2020-10-31T23:59:59Z")
+    }
+  })
+
+3)Find all the company drives and students who are appeared for the placement.
+
+  db.company_drives.aggregate([
+    {
+      $project: {
+        _id: 0,                     
+        company_name: 1,
+        date: 1,
+        placement_name: 1
+      }
+    }
+  ]);
+  
+4)Find the number of problems solved by the user in codekata
+
+db.codekata.aggregate([
+    {
+      $group: {
+        _id: "$user_id",
+        problemsSolved: { $sum: 1 }
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "user_info"
+      }
+    },
+    {
+      $unwind: "$user_info"
+    },
+    {
+      $project: {
+        _id: 0,
+        user_id: "$_id",
+        name: "$user_info.name",
+        problemsSolved: 1
+      }
+    }
+  ]);
+  
+5) Find all the mentors with who has the mentee's count more than 15
+
+db.mentors.aggregate([
+    {
+      $project: {
+        name: 1,
+        mentee_count: { $size: "$mentee_ids" }
+      }
+    },
+    {
+      $match: {
+        mentee_count: { $gt: 15 }
+      }
+    }
+  ]);
+  
+
+6)Find the number of users who are absent and task is not submitted  between 15 oct-2020 and 31-oct-202
+
+
+db.attendance.aggregate([
+    {
+      $match: {
+        date: { $gte: ISODate("2020-10-15T00:00:00Z"), $lte: ISODate("2020-10-31T23:59:59Z") },
+        status: "absent"
+      }
+    },
+    {
+      $group: {
+        _id: { user_id: "$user_id", date: "$date", status: "$status" } 
+      }
+    },
+    {
+      $lookup: {
+        from: "users",                
+        localField: "_id.user_id",    
+        foreignField: "_id",         
+        as: "user_info"              
+      }
+    },
+    {
+      $unwind: "$user_info"            
+    },
+    {
+      $project: {
+        _id: 0,                        
+        user_id: "$_id.user_id",       
+        name: "$user_info.name",       
+        date: "$_id.date",             
+        day: { $dayOfWeek: "$_id.date" }, 
+        status: "$_id.status"         
+      }
+    }
+  ]);
+  
